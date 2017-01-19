@@ -1,11 +1,34 @@
-import base64
-import getpass
-import os
-import socket
-import sys
-import traceback
+import base64, getpass, os, socket, sys, traceback, shlex, nltk, datetime
 from paramiko.py3compat import input
 import paramiko
+from time import gmtime, strftime
+
+# ------------------------------------------------------------------------------
+
+#Function Definitions
+
+def shell_loop():
+    SHELL_STATUS_RUN = 1 # for running the loop 
+    while SHELL_STATUS_RUN :
+        target = open(filename, 'a')
+        prompt = raw_input('%s@%s: ' % (username, hostname))
+        if prompt == "close" :
+            SHELL_STATUS_RUN = 0        
+        target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
+        username + '@' + hostname + ':' + str(port) + ' >>' + ' ' + prompt + '\n')
+        print(prompt) # To show whether the whole command is being interpreted coorectly
+        #cmd_tokens = nltk.word_tokenize(prompt)
+        # This is the point where commands will be interpreted by the definitions of the program
+        # This part of the program hasnt been written yet.
+
+        #for i in cmd_tokens :
+        #    testprompt = ""
+        #    testprompt += cmd_tokens[i]
+        
+        # print cmd_tokens
+        client_stdin, client_stdout, client_stderr = client.exec_command(prompt) #"./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
+        print "Output: ", client_stdout.read()
+    target.close()
 
 
 # setting up logging
@@ -15,6 +38,7 @@ import paramiko
 UseGSSAPI = True
 DoGSSAPIKeyExchange = True
 port = 22
+filename = 'log.txt'
 
 # get hostname
 username = ""
@@ -52,10 +76,12 @@ try:
     chan = client.invoke_shell()
     print(repr(client.get_transport()))
     shell = client.invoke_shell()
-    inputCommand = input("Command: ")
-    client_stdin, client_stdout, client_stderr = client.exec_command(inputCommand) #"./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
-    print "Output: ", client_stdout.read()
-    print "Error: ", client_stderr.read()
+    shell_loop()
+
+
+    
+
+    #print "Error: ", client_stderr.read()
     chan.close()
     client.close()
     #input = close
@@ -69,6 +95,8 @@ except Exception as e:
     except:
         pass
     sys.exit(1)
+
+
 
 #def PolicyWarning():
 #    paramiko.WarningPolicy()
