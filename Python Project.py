@@ -5,40 +5,62 @@ from time import gmtime, strftime
 
 # ------------------------------------------------------------------------------
 
+#Global Variable Definitions
+#Dictionary translation for Linux commands
+translationInput = ["makedir", "files", "changedir", "printdir", "copy", "move", "md5", "sha1"]
+translationOutput = ["mkdir", "ls", "cd", "pwd", "cp", "cp", "md5sum", "sha1sum"]
+# Paramiko client configuration
+UseGSSAPI = True #Figure out what these do
+DoGSSAPIKeyExchange = True #^^
+port = 22
+logFile = 'log.txt'
+
 #Function Definitions
 
+def translate(promptInput) :
+    splitInput = inputString.split(" ")
+    splitOutput = []
+    for i in splitInput :
+        if i not in translationInput :
+            splitOutput.append(i)
+        else :
+            splitOutput.append(translationOutput[translationInput.index(i)])
+    return splitOutput
+
 def shell_loop():
-    SHELL_STATUS_RUN = 1 # for running the loop 
+    SHELL_STATUS_RUN = 1 # for running the loop
+    
     while SHELL_STATUS_RUN :
-        target = open(filename, 'a')
+        target = open(logFile, 'a')
         prompt = raw_input('%s@%s: ' % (username, hostname))
+        print prompt
         if prompt == "close" :
             SHELL_STATUS_RUN = 0        
         target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
-        username + '@' + hostname + ':' + str(port) + ' >>' + ' ' + prompt + '\n')
+        username + '@' + hostname + ':' + str(port) + ' >> ' + prompt + '\n')
         print(prompt) # To show whether the whole command is being interpreted coorectly
-        #cmd_tokens = nltk.word_tokenize(prompt)
+        # cmd_tokens = nltk.word_tokenize(prompt)
         # This is the point where commands will be interpreted by the definitions of the program
         # This part of the program hasnt been written yet.
-
-        #for i in cmd_tokens :
-        #    testprompt = ""
-        #    testprompt += cmd_tokens[i]
+        # This needs to be done using the function translate() defined above
+        # it takes the user input, seperates using spaces, translates, then returns the splitOutput;
+        # the list of commands. -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
         
-        # print cmd_tokens
-        client_stdin, client_stdout, client_stderr = client.exec_command(prompt) #"./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
-        print "Output: ", client_stdout.read()
+        client_stdin, client_stdout, client_stderr = client.exec_command(prompt)
+        # The path to where images are stored on the test device is:
+        # ./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
+        output = client_stdout.read()
+        target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
+        username + '@' + hostname + ':' + str(port) + ' << ' + output)
+        print "Output: ", output
+
     target.close()
 
 
 # setting up logging
 #paramiko.util,log_to_file("demo_simple.log")
+#this comment is to test the use of GitHub
 
-# Paramiko client configuration
-UseGSSAPI = True
-DoGSSAPIKeyExchange = True
-port = 22
-filename = 'log.txt'
 
 # get hostname
 username = ""
