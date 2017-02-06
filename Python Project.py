@@ -1,4 +1,4 @@
-import base64, getpass, os, socket, sys, traceback, shlex, nltk, datetime
+import base64, getpass, os, socket, sys, traceback, shlex, datetime
 from paramiko.py3compat import input
 import paramiko
 from time import gmtime, strftime
@@ -17,15 +17,26 @@ logFile = 'log.txt'
 
 #Function Definitions
 
+def verify(verifyFile) :
+    preTransferMD5 = ""
+    postTransferMD5 = ""
+    
 def translate(promptInput) :
-    splitInput = inputString.split(" ")
+    #translationInput = ["makedir", "files", "changedir", "printdir", "copy", "move", "md5", "sha1"]
+    #translationOutput = ["mkdir", "ls", "cd", "pwd", "cp", "cp", "md5sum", "sha1sum"]
+    splitInput = promptInput.split(" ")
     splitOutput = []
+    promptString = ""
     for i in splitInput :
         if i not in translationInput :
             splitOutput.append(i)
         else :
             splitOutput.append(translationOutput[translationInput.index(i)])
-    return splitOutput
+    #print splitOutput
+    promptString = " ".join(splitOutput)
+    #print promptString
+    return promptString
+
 
 def shell_loop():
     SHELL_STATUS_RUN = 1 # for running the loop
@@ -33,12 +44,12 @@ def shell_loop():
     while SHELL_STATUS_RUN :
         target = open(logFile, 'a')
         prompt = raw_input('%s@%s: ' % (username, hostname))
-        print prompt
+        #print prompt
         if prompt == "close" :
             SHELL_STATUS_RUN = 0        
         target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
         username + '@' + hostname + ':' + str(port) + ' >> ' + prompt + '\n')
-        print(prompt) # To show whether the whole command is being interpreted coorectly
+        #print(prompt) # To show whether the whole command is being interpreted coorectly
         # cmd_tokens = nltk.word_tokenize(prompt)
         # This is the point where commands will be interpreted by the definitions of the program
         # This part of the program hasnt been written yet.
@@ -46,7 +57,8 @@ def shell_loop():
         # it takes the user input, seperates using spaces, translates, then returns the splitOutput;
         # the list of commands. -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
         
-        client_stdin, client_stdout, client_stderr = client.exec_command(prompt)
+        client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
+        #print translate(prompt)
         # The path to where images are stored on the test device is:
         # ./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
         output = client_stdout.read()
@@ -97,7 +109,8 @@ try:
     print " Connected "
     chan = client.invoke_shell()
     print(repr(client.get_transport()))
-    shell = client.invoke_shell()
+    #shell = client.invoke_shell() See if this change prevents subprocesses being created
+
     shell_loop()
 
 
@@ -118,6 +131,23 @@ except Exception as e:
         pass
     sys.exit(1)
 
+
+
+
+#def translate(prompt) :
+#    splitInput = prompt.split(" ")
+#    splitOutput = []
+#    promptString = ""
+#    for i in splitInput :
+#        if i not in translationInput :
+ #           splitOutput.append(i)
+ ##       else :
+ #           splitOutput.append(translationOutput[translationInput.index(i)])
+ #   for i in splitOutput :
+  ##      promptString + i
+  #      print promptString
+  #  
+  #  return splitOutput
 
 
 #def PolicyWarning():
