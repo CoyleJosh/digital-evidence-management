@@ -8,22 +8,33 @@ from time import gmtime, strftime
 #Global Variable Definitions
 #Dictionary translation for Linux commands
 translationInput = ["makedir", "files", "changedir", "printdir", "copy", "move", "md5", "sha1"]
-translationOutput = ["mkdir", "ls", "cd", "pwd", "cp", "cp", "md5sum", "sha1sum"]
+translationOutput = ["mkdir", "ls", "cd", "pwd", "sftp", "sftp", "md5sum", "sha1sum"]
 # Paramiko client configuration
 UseGSSAPI = True #Figure out what these do
 DoGSSAPIKeyExchange = True #^^
 port = 22
 logFile = 'log.txt'
+dirPath = os.path.dirname(os.path.realpath(__file__))
+innerDirPath = (dirPath + "\Evidence Folder")
+remoteDirTest = "/private/var/mobile/Media/DCIM/100APPLE/IMG_0012.JPG"
 
 #Function Definitions
+
+def directorySetup() :
+    if not os.path.exists(dirPath + "\Evidence Folder") :
+        os.makedirs("Evidence Folder")
+    else :
+        print ("Directory already setup.")
 
 def verify(verifyFile) :
     preTransferMD5 = ""
     postTransferMD5 = ""
+    if preTransferMD5 == postTransferMD5 :
+        return true
+    else :
+        return false
     
 def translate(promptInput) :
-    #translationInput = ["makedir", "files", "changedir", "printdir", "copy", "move", "md5", "sha1"]
-    #translationOutput = ["mkdir", "ls", "cd", "pwd", "cp", "cp", "md5sum", "sha1sum"]
     splitInput = promptInput.split(" ")
     splitOutput = []
     promptString = ""
@@ -45,6 +56,7 @@ def shell_loop():
         target = open(logFile, 'a')
         prompt = raw_input('%s@%s: ' % (username, hostname))
         #print prompt
+        directorySetup()
         if prompt == "close" :
             SHELL_STATUS_RUN = 0        
         target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
@@ -56,17 +68,91 @@ def shell_loop():
         # This needs to be done using the function translate() defined above
         # it takes the user input, seperates using spaces, translates, then returns the splitOutput;
         # the list of commands. -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-        
-        client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
-        #print translate(prompt)
-        # The path to where images are stored on the test device is:
-        # ./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
+        #print dirPath # Testing whether the directory path is pointing in the correct direction
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if translate(prompt) == "sftp" :
+            target.close()
+            sftpchan = client.connect(hostname, port, username, password)
+                                            #print "Target Connected."
+            trans = paramiko.Transport((hostname, port))
+                                            #print "Transport Established."
+                                            #print "Successful connection to sftp code"
+            sftp = paramiko.SFTPClient.from_transport(client)
+            sftp.get(remoteDirTest, innerDirTest)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+        else :
+            client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
+                                        #print translate(prompt)
+                                        # The path to where images are stored on the test device is:
+                                        # ./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
         output = client_stdout.read()
         target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
         username + '@' + hostname + ':' + str(port) + ' << ' + output)
         print "Output: ", output
 
     target.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # setting up logging
@@ -106,7 +192,7 @@ try:
     client.set_missing_host_key_policy(paramiko.WarningPolicy())
     print " !*!*!*! Connecting !*!*!*!"
     client.connect(hostname, port, username, password, allow_agent = True)
-    print " Connected "
+    print "Connected "
     chan = client.invoke_shell()
     print(repr(client.get_transport()))
     #shell = client.invoke_shell() See if this change prevents subprocesses being created
