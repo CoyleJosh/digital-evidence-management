@@ -1,6 +1,6 @@
-import base64, getpass, os, socket, sys, traceback, shlex, datetime
+import base64, getpass, os, socket, sys, traceback, shlex, datetime, SSHLibrary, paramiko, time
+from stat import S_ISDIR
 from paramiko.py3compat import input
-import paramiko
 from time import gmtime, strftime
 
 # ------------------------------------------------------------------------------
@@ -14,15 +14,15 @@ UseGSSAPI = True #Figure out what these do
 DoGSSAPIKeyExchange = True #^^
 port = 22
 logFile = 'log.txt'
-dirPath = os.path.dirname(os.path.realpath(__file__))
-innerDirPath = (dirPath + "\Evidence Folder")
-remoteDirTest = "/private/var/mobile/Media/DCIM/100APPLE/IMG_0012.JPG"
+#dirPath = os.path.dirname(os.path.realpath(__file__))
+innerDirPath = (r"C:\Users\admin\Desktop\Evidence")
+remoteDirTest = "/private/var/mobile/Media/DCIM/117APPLE/IMG_7294.PNG"
 
 #Function Definitions
 
 def directorySetup() :
-    if not os.path.exists(dirPath + "\Evidence Folder") :
-        os.makedirs("Evidence Folder")
+    if not os.path.exists(r"C:\Users\admin\Desktop\Evidence") :
+        os.makedirs(r"C:\Users\admin\Desktop\Evidence")
     else :
         print ("Directory already setup.")
 
@@ -55,77 +55,38 @@ def shell_loop():
     while SHELL_STATUS_RUN :
         target = open(logFile, 'a')
         prompt = raw_input('%s@%s: ' % (username, hostname))
-        #print prompt
+        fileNameFind = prompt.split()
         directorySetup()
-        if prompt == "close" :
+       
+        if (prompt == "close") :
+            #client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
+            #output = client_stdout.read()
             SHELL_STATUS_RUN = 0        
-        target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
-        username + '@' + hostname + ':' + str(port) + ' >> ' + prompt + '\n')
-        #print(prompt) # To show whether the whole command is being interpreted coorectly
-        # cmd_tokens = nltk.word_tokenize(prompt)
-        # This is the point where commands will be interpreted by the definitions of the program
-        # This part of the program hasnt been written yet.
-        # This needs to be done using the function translate() defined above
-        # it takes the user input, seperates using spaces, translates, then returns the splitOutput;
-        # the list of commands. -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-        #print dirPath # Testing whether the directory path is pointing in the correct direction
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if translate(prompt) == "sftp" :
-            target.close()
-            sftpchan = client.connect(hostname, port, username, password)
-                                            #print "Target Connected."
+            target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +# Input
+            username + '@' + hostname + ':' + str(port) + ' >> ' + prompt + '\n')#
+            output = client_stdout.read()
+            target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +# Output
+            username + '@' + hostname + ':' + str(port) + ' << ' + "Exiting Program." + '\n')#  
+        elif (translate(prompt) == "sftp") :
+            #client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
+            #output = client_stdout.read()
             trans = paramiko.Transport((hostname, port))
-                                            #print "Transport Established."
-                                            #print "Successful connection to sftp code"
-            sftp = paramiko.SFTPClient.from_transport(client)
-            sftp.get(remoteDirTest, innerDirTest)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
-        else :
-            client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
-                                        #print translate(prompt)
-                                        # The path to where images are stored on the test device is:
-                                        # ./private/var/mobile/Media/DCIM/100APPLE/ ls -l"
+            sftp = client.open_sftp()
+            sftp.chdir("/private/var/mobile/Media/DCIM/117APPLE")
+            #print sftp.listdir("/private/var/mobile/Media/DCIM/117APPLE")
+            fileName = input("Filename for SFTP transfer: ")
+            fileTransferPath = (r"C:\Users\admin\Desktop\Evidence\\" + fileName)
+            sftp.get(fileName, fileTransferPath)
+            target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +# Input
+            username + '@' + hostname + ':' + str(port) + ' << ' + "Transferring " + fileName + " to " + innerDirPath + "." + '\n')#
+            target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +# Output
+            username + '@' + hostname + ':' + str(port) + ' >> ' + "Transferred " + fileName + " to " + innerDirPath + "." + '\n')#
+            print ("Successfully transferred " + fileName + " to " + innerDirPath + ".")
+            sftp.close()
+        elif (translate(prompt) == "md5") :
+            print ("This has not been successfully implemeted yet.")
+            #verify function call
+        client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
         output = client_stdout.read()
         target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
         username + '@' + hostname + ':' + str(port) + ' << ' + output)
@@ -184,7 +145,7 @@ if username == '':
         username = default_username
     password = getpass.getpass('Password for %s@%s: ' % (username, hostname))
 
-print hostname, username, password
+#print hostname, username, password
 
 try:
     client = paramiko.SSHClient()
@@ -194,7 +155,7 @@ try:
     client.connect(hostname, port, username, password, allow_agent = True)
     print "Connected "
     chan = client.invoke_shell()
-    print(repr(client.get_transport()))
+    #print(repr(client.get_transport()))
     #shell = client.invoke_shell() See if this change prevents subprocesses being created
 
     shell_loop()
@@ -213,6 +174,7 @@ except Exception as e:
     traceback.print_exc()
     try:
         client.close()
+        target.close()
     except:
         pass
     sys.exit(1)
