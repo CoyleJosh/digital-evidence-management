@@ -1,4 +1,4 @@
-import base64, getpass, os, socket, sys, traceback, shlex, datetime, SSHLibrary, paramiko, time
+import base64, getpass, os, socket, sys, traceback, shlex, datetime, SSHLibrary, paramiko, time, hashlib
 from stat import S_ISDIR
 from paramiko.py3compat import input
 from time import gmtime, strftime
@@ -16,7 +16,9 @@ port = 22
 logFile = 'log.txt'
 #dirPath = os.path.dirname(os.path.realpath(__file__))
 innerDirPath = (r"C:\Users\admin\Desktop\Evidence")
-remoteDirTest = "/private/var/mobile/Media/DCIM/117APPLE/IMG_7294.PNG"
+remoteDirTest = "/private/var/mobile/Media/DCIM/100APPLE/"
+target = open(logFile, 'a')
+validated = False
 
 #Function Definitions
 
@@ -26,13 +28,25 @@ def directorySetup() :
     else :
         print ("Directory already setup.")
 
-def verify(verifyFile) :
-    preTransferMD5 = ""
-    postTransferMD5 = ""
+def verify(veriFile) :
+    commandTempPre = str("md5sum " + remoteDirTest + veriFile)
+    commandTempPost = str(hashlib.md5(open(str(innerDirPath + "\\" + veriFile), 'rb').read()).hexdigest())
+    print (commandTempPre)
+    client_stdin, client_stdout, client_stderr = client.exec_command(commandTempPre)
+    output = client_stdout.read()
+    target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
+    username + '@' + hostname + ':' + str(port) + ' << ' + output)
+    splitOutput = output.split("  ")
+    preTransferMD5 = splitOutput[0]
+    postTransferMD5 = commandTempPost
+    print (preTransferMD5, postTransferMD5)
     if preTransferMD5 == postTransferMD5 :
-        return true
+        print ("MD5 Match")
+        return True
     else :
-        return false
+        print ("MD5 Mismatch")
+        return False
+    
     
 def translate(promptInput) :
     splitInput = promptInput.split(" ")
@@ -51,13 +65,11 @@ def translate(promptInput) :
 
 def shell_loop():
     SHELL_STATUS_RUN = 1 # for running the loop
+    directorySetup()
     
     while SHELL_STATUS_RUN :
-        target = open(logFile, 'a')
         prompt = raw_input('%s@%s: ' % (username, hostname))
-        fileNameFind = prompt.split()
-        directorySetup()
-       
+        fileNameFind = prompt.split()    
         if (prompt == "close") :
             #client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
             #output = client_stdout.read()
@@ -72,7 +84,7 @@ def shell_loop():
             #output = client_stdout.read()
             trans = paramiko.Transport((hostname, port))
             sftp = client.open_sftp()
-            sftp.chdir("/private/var/mobile/Media/DCIM/117APPLE")
+            sftp.chdir("/private/var/mobile/Media/DCIM/100APPLE")
             #print sftp.listdir("/private/var/mobile/Media/DCIM/117APPLE")
             fileName = input("Filename for SFTP transfer: ")
             fileTransferPath = (r"C:\Users\admin\Desktop\Evidence\\" + fileName)
@@ -83,17 +95,39 @@ def shell_loop():
             username + '@' + hostname + ':' + str(port) + ' >> ' + "Transferred " + fileName + " to " + innerDirPath + "." + '\n')#
             print ("Successfully transferred " + fileName + " to " + innerDirPath + ".")
             sftp.close()
-        elif (translate(prompt) == "md5") :
-            print ("This has not been successfully implemeted yet.")
-            #verify function call
-        client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
-        output = client_stdout.read()
-        target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
-        username + '@' + hostname + ':' + str(port) + ' << ' + output)
-        print "Output: ", output
+        elif ((translate(prompt).split(" "))[0] == "md5sum") :
+            print("MD5SUM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            veriFile = input("Please type the name of the file to verify: ")
+            validated = verify(veriFile)
+            print validated
+##            commandTemp = str("md5sum " + remoteDirTest + veriFile)
+##            print (commandTemp)
+##            client_stdin, client_stdout, client_stderr = client.exec_command(commandTemp)
+##            output = client_stdout.read()
+##            target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
+##            username + '@' + hostname + ':' + str(port) + ' << ' + output)
+##            print "Output: ", output
+##            
+##            #commandTemp = str("md5sum " + veriFile)
+##            #print (commandTemp)
+##            #client_stdin, client_stdout, client_stderr = client.exec_command(commandTemp)
+##            #output = client_stdout.read()
+##            #print (output)
+##            #sftp = client.open_sftp()
+##            #sftp.chdir("/private/var/mobile/Media/DCIM/100APPLE")   
+##            verify(veriFile)
+            
+            
+            
+        #client_stdin, client_stdout, client_stderr = client.exec_command(translate(prompt))
+        #output = client_stdout.read()
+        #target.write(strftime("[%d-%m-%Y] [%H:%M:%S]" , gmtime()) + ' ' +
+        #username + '@' + hostname + ':' + str(port) + ' << ' + output)
+        #print "Output: ", output
 
     target.close()
-
+    trans.close()
+    client.close()
 
 
 
